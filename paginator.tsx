@@ -32,6 +32,7 @@ const Paginator = (props: PaginatorProps) => {
       totalPages: getPageCount(props.children, props.max),
       isLoading: false,
     }));
+    console.log(p.totalPages)
   });
   return (
     <Show when={!p.isLoading} fallback={<div>Loading...</div>}>
@@ -52,16 +53,32 @@ type PaginatorButtonsProps = {
   setP: SetStoreFunction<PaginatorStore>
 };
 
+const prevP = (setP: PaginatorButtonsProps["setP"]) => setP((s) => (
+  { ...s, page: (s.page - 1 >= 1) ? s.page - 1 : s.page }
+));
+
+const nextP = (setP: PaginatorButtonsProps["setP"]) => setP((s) => (
+  { ...s, page: (s.page + 1 <= s.totalPages) ? s.page + 1 : s.page }
+));
+
 const PaginatorButtons = (props: PaginatorButtonsProps) => {
   const { p, setP } = props;
   return (
-    <For each={Array.from({ length: p.totalPages }, (_, i) => i + 1)}>
-      {(pageNum) => (
-        <Button onclick={() => setP((s) => ( {...s, page: pageNum }))}>
-          {pageNum}
-        </Button>
-      )}
-    </For>
+    <>
+      <Button onclick={() => prevP(setP)}>
+        Prev
+      </Button>
+      <For each={Array.from({ length: p.totalPages }, (_, i) => i + 1)}>
+        {(pageNum) => (
+          <Button onclick={() => setP((s) => ( {...s, page: pageNum }))}>
+            {pageNum}
+          </Button>
+        )}
+      </For>
+      <Button onclick={() => nextP(setP)}>
+        Next
+      </Button>
+    </>
   );
 };
 
