@@ -32,7 +32,6 @@ const Paginator = (props: PaginatorProps) => {
       totalPages: getPageCount(props.children, props.max),
       isLoading: false,
     }));
-    console.log(p.totalPages)
   });
   return (
     <Show when={!p.isLoading} fallback={<div>Loading...</div>}>
