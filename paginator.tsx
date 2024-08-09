@@ -20,7 +20,7 @@ const createPaginatorStore = (props: PaginatorProps) => {
 };
 
 const createChild = (el: PaginatorProps["children"], p: PaginatorStore) => Array.isArray(el) ? el[p.page - 1] : el;
-const getPageCount = (el: PaginatorProps["children"], max?: number) => Array.isArray(el) ? max ? max < el.length ? max : el.length : el.length: 0;
+const getPageCount = (el: PaginatorProps["children"], max?: number) => Array.isArray(el) ? max ? max < el.length ? max : el.length : el.length : 0;
 
 const Paginator = (props: PaginatorProps) => {
   const [p, setP] = createPaginatorStore(props);
