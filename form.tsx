@@ -16,7 +16,7 @@ const SignInForm = () => {
   const { fetchData, response } = useFetch<APIResponseReturn>();
   const navigate = useNavigate();
 
-  const onSubmit = async (data: InferType<typeof signInSchema>) => {
+  const onSubmit = async (data: SignInSchema>) => {
     await fetchData(`${import.meta.env.VITE_API_BASE_URL}/sign-in`, {
       method: "POST",
       body: data,
