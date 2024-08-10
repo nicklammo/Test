@@ -5,14 +5,14 @@ import { Input } from "@/components/forms/input";
 import { useFetch } from "@/hooks/useFetch";
 import { useForm } from "@/hooks/useForm";
 import { createEffect, Show } from "solid-js";
-import { signInSchema } from "./schema";
+import { SignInSchema, signInSchema } from "./schema";
 import { useNavigate } from "@solidjs/router";
 import { InferType } from "yup";
 import { AlertGeneric } from "@/components/forms/alerts";
 import { APIResponseReturn } from "@/lib/api";
 
 const SignInForm = () => {
-  const { form, register, handleSubmit, errors } = useForm<InferType<typeof signInSchema>>(signInSchema);
+  const { form, register, handleSubmit, errors } = useForm<SignInSchema>(signInSchema);
   const { fetchData, response } = useFetch<APIResponseReturn>();
   const navigate = useNavigate();
 
