@@ -53,7 +53,6 @@ const Paginator = (props: PaginatorProps) => {
   };
 
   createEffect(() => { // focus listeners
-    if (!ref()) return;
     const enterLis = () => setP((s) => ({ ...s, isFocused: true }));
     const leaveLis = () => setP((s) => ({ ...s, isFocused: false }));
     const focusHand = listener("mouseenter", enterLis);
