@@ -1,17 +1,20 @@
-import { Accessor, createEffect, createSignal } from "solid-js";
+import { Accessor, createEffect, createSignal, onCleanup } from "solid-js";
 import { AnyObject, ObjectSchema, ValidationError } from "yup";
 
 type UseFormReturn<T> = {
   form: (element: HTMLFormElement) => void;
-  register: (name: string) => { name: string; ref: (element: HTMLInputElement) => void; oninput: (event: InputEvent) => void };
-  handleSubmit: (onSubmit: (data: { [K in keyof T]: string }) => void) => (event: SubmitEvent) => void;
-  errors: Accessor<Partial<{ [K in keyof T]: string }>>;
+  register: (name: string) => { name: string; ref: (element: HTMLInputElement) => void };
+  handleSubmit: (onSubmit: (data: FormDataMap<T>) => void) => (event: SubmitEvent) => void;
+  errors: Accessor<Partial<FormDataMap<T>>>;
 };
+
+type FormDataMap<T> = { [K in keyof T]: string };
 
 const useForm = <T extends AnyObject>(schema: ObjectSchema<T>): UseFormReturn<T> => {
   let formControl: HTMLFormElement | null = null;
   const fields: { [key: string]: HTMLInputElement } = {};
-  const [errors, setErrors] = createSignal<Partial<{ [K in keyof T]: string }>>({});
+  const [formData, setFormData] = createSignal<FormDataMap<T> | {}>({}); 
+  const [errors, setErrors] = createSignal<Partial<FormDataMap<T>>>({});
 
   const form = () => {
     return {
@@ -27,11 +30,14 @@ const useForm = <T extends AnyObject>(schema: ObjectSchema<T>): UseFormReturn<T>
       ref: (element: HTMLInputElement) => {
         fields[name] = element;
       },
-      oninput: (event: InputEvent) => {
-        const target = event.target as HTMLInputElement;
-        fields[name].value = target.value;
-      },
     };
+  };
+
+  const reduceFields = () => {
+    return Object.keys(fields).reduce((acc, key) => {
+      acc[key as keyof T] = fields[key].value;
+      return acc;
+    }, {} as FormDataMap<T>);
   };
 
   const debounce = (callback: (...args: any[]) => void) => {
@@ -44,65 +50,66 @@ const useForm = <T extends AnyObject>(schema: ObjectSchema<T>): UseFormReturn<T>
     };
   };
 
-  const reduce = (_data: { [key: string]: HTMLInputElement }) => {
-    return Object.keys(_data).reduce((acc, key) => {
-      acc[key as keyof T] = fields[key].value;
-      return acc;
-    }, {} as { [K in keyof T]: string });
-  };
-
   createEffect(() => {
     if (formControl) {
       const inputHandler = debounce(async (event: InputEvent) => {
         const target = event.target as HTMLInputElement;
+        const field = fields[target.name];
+        if (!field) return; // Ignore unregistered fields
+        setFormData(() => reduceFields());
         if (schema && schema instanceof ObjectSchema) {
           try {
-            await (schema as ObjectSchema<T>).validateAt(target.name, reduce(fields));
+            await (schema as ObjectSchema<T>).validateAt(field.name, formData() as FormDataMap<T>);
             setErrors(prevErrors => {
-              const { [target.name as keyof T]: _, ...errors } = prevErrors;
-              return errors as Partial<{ [K in keyof T]: string }>;
+              const { [field.name as keyof T]: _, ...errors } = prevErrors;
+              return errors as Partial<FormDataMap<T>>;
             });
+            fields[target.name].style.border = "1px solid #22c55e";
+            fields[target.name].style.outlineColor = "#22c55e";
           } catch (error) {
             if (error instanceof ValidationError) {
               setErrors(prevErrors => ({
                 ...prevErrors,
-                [target.name]: error.message,
+                [field.name]: error.message,
               }));
+              field.style.border = "1px solid #ef4444";
+              field.style.outlineColor = "#ef4444";
             };
           };
         };
       });
       formControl.addEventListener("input", inputHandler);
+      onCleanup(() => formControl?.removeEventListener("input", inputHandler));
     };
   });
 
-  const handleSubmit = (onSubmit: (data: { [K in keyof T]: string }) => void) => {
-    return async (event: Event) => {
+  const handleSubmit = (onSubmit: (data: FormDataMap<T>) => void) => {
+    return async (event: SubmitEvent) => {
       event.preventDefault();
-      const data = reduce(fields);
+      setFormData(() => reduceFields());
       if (schema && schema instanceof ObjectSchema) {
         try {
           setErrors({});
-          await (schema as ObjectSchema<T>).validate(data, {
+          await (schema as ObjectSchema<T>).validate(formData(), {
             abortEarly: false,
           });
         } catch (error) {
-          const _errors: Partial<{ [K in keyof T]: string }> = {};
+          const newErrors: Partial<FormDataMap<T>> = {};
           if (error instanceof ValidationError) {
             if (error.inner) {
               error.inner.forEach((error) => {
-                if (error.path) _errors[error.path as keyof T] = error.message;
+                if (error.path) newErrors[error.path as keyof T] = error.message;
               });
             };
           };
           setErrors((prevErrors) => ({
             ...prevErrors,
-            ..._errors,
+            ...newErrors,
           }));
           return;
         };
       };
-      return onSubmit(data);
+      return onSubmit(formData() as FormDataMap<T>);
     };
   };
   return { form, register, handleSubmit, errors };
