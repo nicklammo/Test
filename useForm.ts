@@ -50,6 +50,10 @@ const useForm = <T extends AnyObject>(schema: ObjectSchema<T>): UseFormReturn<T>
     };
   };
 
+  const setFieldStyles = (field: HTMLInputElement, color: string) => { 
+    field.style.border = `1px solid ${color}`; field.style.outlineColor = color; 
+  };
+
   createEffect(() => {
     if (formControl) {
       const inputHandler = debounce(async (event: InputEvent) => {
@@ -64,16 +68,14 @@ const useForm = <T extends AnyObject>(schema: ObjectSchema<T>): UseFormReturn<T>
               const { [field.name as keyof T]: _, ...errors } = prevErrors;
               return errors as Partial<FormDataMap<T>>;
             });
-            fields[target.name].style.border = "1px solid #22c55e";
-            fields[target.name].style.outlineColor = "#22c55e";
+            setFieldStyles(field, "#22c55e");
           } catch (error) {
             if (error instanceof ValidationError) {
               setErrors(prevErrors => ({
                 ...prevErrors,
                 [field.name]: error.message,
               }));
-              field.style.border = "1px solid #ef4444";
-              field.style.outlineColor = "#ef4444";
+              setFieldStyles(field, "#ef4444");
             };
           };
         };
