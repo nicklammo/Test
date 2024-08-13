@@ -17,7 +17,7 @@ const schema = yup.object({
     .oneOf([yup.ref("password")], "Passwords do not match"),
 });
 
-const TestForm = () => {
+const App = () => {
   const { form, register, handleSubmit, errors } = useForm(schema);
 
   const onSubmit = (data: any) => {
@@ -42,9 +42,9 @@ const TestForm = () => {
 };
 
 const getFields = () => {
-  const { getByPlaceholderText, getByText, queryByText } = render(() => (
-    <TestForm />
-  ));
+  const { getByPlaceholderText, findByText, getByText, queryByText } = render(
+    () => <App />
+  );
   const usernameInput = getByPlaceholderText("Username");
   const passwordInput = getByPlaceholderText("Password");
   const confirmPasswordInput = getByPlaceholderText("Confirm Password");
@@ -54,6 +54,7 @@ const getFields = () => {
     passwordInput,
     confirmPasswordInput,
     submitButton,
+    findByText,
     getByPlaceholderText,
     getByText,
     queryByText,
@@ -96,16 +97,15 @@ describe("useForm hook", () => {
       passwordInput,
       confirmPasswordInput,
       submitButton,
-      getByText,
+      findByText,
     } = getFields();
     fireEvent.input(usernameInput, targetValue("Nick"));
     // Passwords do not match
     fireEvent.input(passwordInput, targetValue("Passwordlol111"));
     fireEvent.input(confirmPasswordInput, targetValue("Passwordlol222"));
     fireEvent.click(submitButton);
-    await pause(100);
+    expect(await findByText("Passwords do not match")).toBeTruthy();
     expect(consoleLogSpy).toHaveBeenCalledTimes(0);
-    expect(() => getByText("Passwords do not match")).not.toThrow();
   });
   test("shouldn't submit form then display error if missing field values", async () => {
     const consoleLogSpy = vi.spyOn(console, "log");
@@ -115,9 +115,9 @@ describe("useForm hook", () => {
     fireEvent.input(passwordInput, targetValue("Passwordlol123"));
     fireEvent.input(confirmPasswordInput, targetValue("Passwordlol123"));
     fireEvent.click(submitButton);
-    pause(100);
+    await pause(100);
+    expect(() => getByText("Username is required")).toBeTruthy();
     expect(consoleLogSpy).toBeCalledTimes(0);
-    expect(() => getByText("Username is required"));
   });
   test("shouldn't submit form then display error if incorrect field values", async () => {
     const consoleLogSpy = vi.spyOn(console, "log");
@@ -126,33 +126,33 @@ describe("useForm hook", () => {
       passwordInput,
       confirmPasswordInput,
       submitButton,
-      getByText,
+      findByText,
     } = getFields();
     fireEvent.input(usernameInput, targetValue("Nick"));
     fireEvent.input(passwordInput, targetValue("Pass"));
     fireEvent.input(confirmPasswordInput, targetValue("Pass"));
     fireEvent.click(submitButton);
-    await pause(100);
+    expect(
+      await findByText("Password must be at least 8 characters")
+    ).toBeTruthy();
     expect(consoleLogSpy).toBeCalledTimes(0);
-    expect(() =>
-      getByText("Password must be at least 8 characters")
-    ).not.toThrow();
   });
   test("should display live validation errors as user types incorrect values", async () => {
-    const { usernameInput, passwordInput, confirmPasswordInput, getByText } =
+    const { usernameInput, passwordInput, confirmPasswordInput, findByText } =
       getFields();
     // Type incorrect username
     fireEvent.input(usernameInput, targetValue("Ni"));
-    await pause(300); // debounce
-    expect(() => getByText("Username must be at least 3 characters"));
+    expect(
+      await findByText("Username must be at least 3 characters")
+    ).toBeTruthy();
     // Type incorrect password
     fireEvent.input(passwordInput, targetValue("Pass"));
-    await pause(300); // debounce
-    expect(() => getByText("Password must be at least 8 characters"));
+    expect(
+      await findByText("Password must be at least 8 characters")
+    ).toBeTruthy();
     // Type incorrect confirmPassword
     fireEvent.input(confirmPasswordInput, targetValue("Ssap"));
-    await pause(300); // debounce
-    expect(() => getByText("Passwords do not match"));
+    expect(await findByText("Passwords do not match")).toBeTruthy();
   });
   test("should hide live validation errors as user corrects values", async () => {
     const {
@@ -165,7 +165,9 @@ describe("useForm hook", () => {
     // Type incorrect username
     fireEvent.input(usernameInput, targetValue("Ni"));
     await pause(300); // debounce
-    expect(() => getByText("Username must be at least 3 characters"));
+    expect(() =>
+      getByText("Username must be at least 3 characters")
+    ).toBeTruthy();
     // Type correct username
     fireEvent.input(usernameInput, targetValue("Nick"));
     await pause(300); // debounce
@@ -173,7 +175,9 @@ describe("useForm hook", () => {
     // Type incorrect password
     fireEvent.input(passwordInput, targetValue("Pass"));
     await pause(300); // debounce
-    expect(() => getByText("Password must be at least 8 characters"));
+    expect(() =>
+      getByText("Password must be at least 8 characters")
+    ).toBeTruthy();
     // Type correct password
     fireEvent.input(passwordInput, targetValue("Passwordlol123"));
     await pause(300); // debounce
@@ -181,10 +185,9 @@ describe("useForm hook", () => {
     // Type incorrect confirmPassword
     fireEvent.input(confirmPasswordInput, targetValue("Passwordlol321"));
     await pause(300); // debounce
-    expect(() => getByText("Passwords do not match"));
+    expect(() => getByText("Passwords do not match")).toBeTruthy();
     // Type correct confirmPassword
     fireEvent.input(confirmPasswordInput, targetValue("Passwordlol123"));
-    await pause(300); // debounce
     expect(queryByText("Passwords do not match")).toBeNull();
   });
 });
